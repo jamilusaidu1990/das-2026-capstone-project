@@ -176,3 +176,9 @@ export function offerNextOnWaitlist(store, tierId) {
   if (!head || seatsLeft(tier) < head.quantity) return undefined;
   return queue.dequeue();
 }
+
+export function unpublishEvent(store, eventId) {
+  const event = getEvent(store, eventId);
+  event.status = 'draft';
+  return event;
+}

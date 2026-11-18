@@ -5,12 +5,14 @@ import {
   createEvent,
   addTier,
   publishEvent,
+  unpublishEvent,
   bookTickets,
   cancelBooking,
   joinWaitlist,
   offerNextOnWaitlist,
   findBookingByReference,
   seatsLeft,
+  listEventSummaries,
 } from '../src/domain/inventory.js';
 import { DomainError } from '../src/domain/errors.js';
 
@@ -49,6 +51,14 @@ describe('inventory', () => {
       const empty = createEvent(store, { title: 'Empty', city: 'Abuja', startsAt: '2026-12-06' });
       throwsCode(() => publishEvent(store, empty.id), 'INVALID_STATE');
       assert.equal(publishEvent(store, event.id).status, 'published');
+    });
+      it('can unpublish an event', () => {
+      publishEvent(store, event.id);
+
+      const unpublished = unpublishEvent(store, event.id);
+
+      assert.equal(unpublished.status, 'draft');
+      assert.equal(listEventSummaries(store).length, 0);
     });
   });
 
