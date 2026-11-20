@@ -13,14 +13,19 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 ## Build 2
 
 ### Prompt 1: Build 2 prompt (docs/build-2.md)
-- **What I asked:**
-- **What came back:**
-- **What was wrong (or "nothing"):**
+- **What I asked:** Implement Build 2 according to the requirements in docs/build-2.md, including event publishing, ticket tiers, booking, merge sort, search, filtering, sorting and automated tests.
+- **What came back:** The Build 2 domain functionality and automated tests were implemented.
+- **What was wrong (or "nothing"):** During review, the event search test file was found to be missing its final closing bracket. We corrected it and verified that all 53 tests passed.
 
-### Prompt 2:
-- **What I asked:**
-- **What came back:**
-- **What was wrong (or "nothing"):**
+### Prompt 2: Build 2 requirements and test review
+- **What I asked:** Review the Build 2 requirements, user stories, tests and documentation for remaining gaps.
+- **What came back:** The review identified that the three S04 acceptance criteria had not been filled in and that the Build 2 AI log entries were incomplete.
+- **What was wrong (or "nothing"):** The S04 criteria and AI log entries were incomplete. We filled in the three S04 criteria based on the existing implementation and tests, and documented the review findings.
+
+### Prompt 3: Build 2 final test audit
+- **What I asked:** Check for missing Build 2 acceptance-test coverage, verify merge sort stability, and run the complete test suite.
+- **What came back:** The review found that price-filter tests did not explicitly cover events without ticket tiers.
+- **What was wrong (or "nothing"):** Added a test for events without ticket tiers, corrected its expected result, and verified that all 54 tests passed. Merge sort stability and input immutability were also verified.
 
 ## Build 3
 

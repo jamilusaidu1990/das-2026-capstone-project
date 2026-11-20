@@ -48,21 +48,39 @@ function getEvent(store, eventId) {
   return event;
 }
 
-export function createEvent(store, { title, city, venue = '', startsAt, organizerId }) {
+export function createEvent(store, { title, city, venue = "", startsAt, organizerId }) {
   const date = new Date(startsAt);
-  if (Number.isNaN(date.getTime())) {
-    throw new DomainError('VALIDATION', 'startsAt must be a valid date');
+  const datePart =
+    typeof startsAt === "string"
+      ? startsAt.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      : null;
+
+  const calendarDate = datePart
+    ? new Date(`${datePart[1]}-${datePart[2]}-${datePart[3]}T00:00:00.000Z`)
+    : null;
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    !datePart ||
+    Number.isNaN(calendarDate.getTime()) ||
+    calendarDate.getUTCFullYear() !== Number(datePart[1]) ||
+    calendarDate.getUTCMonth() !== Number(datePart[2]) - 1 ||
+    calendarDate.getUTCDate() !== Number(datePart[3])
+  ) {
+    throw new DomainError("VALIDATION", "startsAt must be a valid date");
   }
+
   const event = {
     id: newId(),
     organizerId,
-    title: requireText(title, 'Title'),
-    city: requireText(city, 'City'),
+    title: requireText(title, "Title"),
+    city: requireText(city, "City"),
     venue: String(venue).trim(),
     startsAt: date.toISOString(),
-    status: 'draft',
+    status: "draft",
     tierIds: [],
   };
+
   store.events.set(event.id, event);
   return event;
 }

@@ -1,8 +1,8 @@
 // Pure functions: events in, events out. No store, no side effects.
 // That makes them trivial to test and reuse (the API and the UI can share them).
 
-import { mergeSort } from './sorting.js';
-import { DomainError } from './errors.js';
+import { mergeSort } from "./sorting.js";
+import { DomainError } from "./errors.js";
 
 // A summary is what the event list shows: the event plus numbers from its tiers.
 export function summarizeEvent(event, tiers) {
@@ -14,27 +14,63 @@ export function summarizeEvent(event, tiers) {
     startsAt: event.startsAt,
     status: event.status,
     tierCount: tiers.length,
-    minPriceCents: tiers.length ? Math.min(...tiers.map((t) => t.priceCents)) : null,
+    minPriceCents: tiers.length
+      ? Math.min(...tiers.map((t) => t.priceCents))
+      : null,
     seatsLeft: tiers.reduce((total, t) => total + (t.capacity - t.sold), 0),
   };
 }
 
 function parseDate(value, field, { endOfDay = false } = {}) {
+  const datePart =
+    typeof value === "string"
+      ? value.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/)
+      : null;
+
+  if (datePart) {
+    const year = Number(datePart[1]);
+    const month = Number(datePart[2]);
+    const day = Number(datePart[3]);
+
+    const calendarDate = new Date(Date.UTC(year, month - 1, day));
+
+    if (
+      calendarDate.getUTCFullYear() !== year ||
+      calendarDate.getUTCMonth() !== month - 1 ||
+      calendarDate.getUTCDate() !== day
+    ) {
+      throw new DomainError("VALIDATION", `${field} must be a real date`);
+    }
+  }
+
   const time = new Date(value).getTime();
-  if (Number.isNaN(time)) throw new DomainError('VALIDATION', `${field} must be a valid date`);
-  // "2026-12-05" as an upper bound should include the whole of the 5th.
+
+  if (Number.isNaN(time)) {
+    throw new DomainError("VALIDATION", `${field} must be a valid date`);
+  }
+
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(String(value));
+
   return endOfDay && isDateOnly ? time + 24 * 60 * 60 * 1000 - 1 : time;
 }
 
-export function filterEvents(summaries, { q, city, from, to, maxPriceCents, onlyAvailable } = {}) {
+export function filterEvents(
+  summaries,
+  { q, city, from, to, maxPriceCents, onlyAvailable } = {},
+) {
   const text = q?.trim().toLowerCase();
   const wantedCity = city?.trim().toLowerCase();
-  const fromTime = from ? parseDate(from, 'from') : undefined;
-  const toTime = to ? parseDate(to, 'to', { endOfDay: true }) : undefined;
+  const fromTime = from ? parseDate(from, "from") : undefined;
+  const toTime = to ? parseDate(to, "to", { endOfDay: true }) : undefined;
 
-  if (maxPriceCents !== undefined && (!Number.isInteger(maxPriceCents) || maxPriceCents < 0)) {
-    throw new DomainError('VALIDATION', 'maxPriceCents must be a whole number of cents');
+  if (
+    maxPriceCents !== undefined &&
+    (!Number.isInteger(maxPriceCents) || maxPriceCents < 0)
+  ) {
+    throw new DomainError(
+      "VALIDATION",
+      "maxPriceCents must be a whole number of cents",
+    );
   }
 
   return summaries.filter((event) => {
@@ -45,7 +81,9 @@ export function filterEvents(summaries, { q, city, from, to, maxPriceCents, only
     if (fromTime !== undefined && startsAt < fromTime) return false;
     if (toTime !== undefined && startsAt > toTime) return false;
 
-    if (maxPriceCents !== undefined && (event.minPriceCents === null || event.minPriceCents > maxPriceCents)) {
+    if (
+      maxPriceCents !== undefined &&
+      (event.minPriceCents == null || event.minPriceCents > maxPriceCents)    ) {
       return false;
     }
     if (onlyAvailable && event.seatsLeft <= 0) return false;
@@ -57,30 +95,38 @@ const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 // Tie-breaker so the order is always the same, even when the main keys are equal.
 const byTitleThenId = (a, b) =>
-  compareText(a.title.toLowerCase(), b.title.toLowerCase()) || compareText(a.id, b.id);
+  compareText(a.title.toLowerCase(), b.title.toLowerCase()) ||
+  compareText(a.id, b.id);
 
 const SORTERS = {
-  // ISO date strings sort correctly as plain text.
+  // ISO date strings sort correctly as plain text, including the time.
   date: (a, b) => compareText(a.startsAt, b.startsAt) || byTitleThenId(a, b),
+
   // Events with no tiers have no price: put them last.
   price: (a, b) => {
     const priceA = a.minPriceCents ?? Infinity;
     const priceB = b.minPriceCents ?? Infinity;
-    return (priceA === priceB ? 0 : priceA < priceB ? -1 : 1) || byTitleThenId(a, b);
+    return (
+      (priceA === priceB ? 0 : priceA < priceB ? -1 : 1) || byTitleThenId(a, b)
+    );
   },
+
   // Most seats left first.
   availability: (a, b) => b.seatsLeft - a.seatsLeft || byTitleThenId(a, b),
 };
 
 export const SORT_OPTIONS = Object.keys(SORTERS);
 
-export function sortEvents(summaries, sortBy = 'date') {
+export function sortEvents(summaries, sortBy = "date") {
   if (!Object.hasOwn(SORTERS, sortBy)) {
-    throw new DomainError('VALIDATION', `sort must be one of: ${SORT_OPTIONS.join(', ')}`);
+    throw new DomainError(
+      "VALIDATION",
+      `sort must be one of: ${SORT_OPTIONS.join(", ")}`,
+    );
   }
   return mergeSort(summaries, SORTERS[sortBy]);
 }
 
-export function searchEvents(summaries, criteria = {}, sortBy = 'date') {
+export function searchEvents(summaries, criteria = {}, sortBy = "date") {
   return sortEvents(filterEvents(summaries, criteria), sortBy);
 }
